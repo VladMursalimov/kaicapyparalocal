@@ -1,0 +1,2 @@
+# kaicapyparalocal
+расписание предметов
