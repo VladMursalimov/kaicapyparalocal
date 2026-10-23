@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Мое Расписание</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --card-active: #1e3a8a;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --badge-dot: #10b981;
+      --badge-offline: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Верхний блок: Часы и Статус */
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .live-time {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .status-badge.active {
+      color: #34d399;
+      border-color: #059669;
+    }
+
+    /* Навигатор по дате */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      margin-bottom: 16px;
+    }
+
+    .date-nav button {
+      background: #334155;
+      color: var(--text-main);
+      border: none;
+      outline: none;
+      border-radius: 8px;
+      width: 44px;
+      height: 40px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .date-nav button:active {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .date-nav .date-display {
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .date-nav .date-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .date-nav .date-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    input[type="date"] {
+      display: none;
+    }
+
+    /* Список карточек */
+    .schedule-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .card.now {
+      background: var(--card-active);
+      border-color: var(--accent);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .card.past {
+      opacity: 0.55;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 8px;
+    }
+
+    .time-slot {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .type-badge {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .type-лек { background: #3b82f6; color: white; }
+    .type-пр { background: #10b981; color: white; }
+    .type-л-р { background: #8b5cf6; color: white; }
+
+    .subject {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .place-badge {
+      display: inline-block;
+      background: #0f172a;
+      padding: 3px 6px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 10px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .btn-today {
+      margin-top: 12px;
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-today:active {
+      background: rgba(56, 189, 248, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="live-time" id="liveTime">--:--:--</div>
+      <div class="status-badge" id="liveStatus">Расчет...</div>
+    </header>
+
+    <div class="date-nav">
+      <button onclick="changeDate(-1)">❮</button>
+      <div class="date-display" onclick="openPicker()">
+        <div class="date-title" id="dateTitle">-- --</div>
+        <div class="date-sub" id="dateSub">нажмите для выбора</div>
+      </div>
+      <button onclick="changeDate(1)">❯</button>
+      <input type="date" id="dateInput" onchange="onDateChosen(this.value)">
+    </div>
+
+    <div class="schedule-list" id="scheduleList">
+      <!-- Пары вставляются кодом -->
+    </div>
+
+    <button class="btn-today" onclick="setToday()">Вернуться к сегодняшнему дню</button>
+  </div>
+
+  <script>
+    // База данных расписания
+    // Формат пар: пара идет 1ч 30м (90 минут)
+    const rawData = [
+      // Понедельник
+      { time: "16:50", dates: ["14.09", "28.09", "12.10", "26.10"], name: "Теория эффективного лидерства и командный менеджмент", type: "лек", room: "2 / 312", prof: "СЮРКОВА С. М.", dep: "Цифровая экономика" },
+      { time: "18:30", dates: ["07.09", "14.09", "21.09", "28.09", "05.10", "12.10", "19.10", "26.10", "02.11", "09.11", "16.11", "23.11"], name: "Теория эффективного лидерства и командный менеджмент", type: "пр", room: "2 / 312", prof: "СЮРКОВА С. М.", dep: "Цифровая экономика" },
+      { time: "20:10", dates: ["07.09", "21.09", "05.10", "19.10", "02.11", "16.11", "30.11", "14.12"], name: "Методология научных исследований", type: "пр", room: "2 / 312", prof: "ЛЕВИНА Е. Ю.", dep: "Цифровая экономика" },
+      { time: "20:10", dates: ["14.09", "28.09", "12.10", "26.10", "09.11", "23.11", "07.12", "21.12"], name: "Методология научных исследований", type: "лек", room: "2 / 312", prof: "ЛЕВИНА Е. Ю.", dep: "Цифровая экономика" },
+
+      // Вторник
+      { time: "16:50", dates: ["08.09", "22.09", "06.10", "20.10", "03.11", "17.11", "01.12", "15.12"], name: "Архитектура встраиваемых систем", type: "лек", room: "ДОТ / ДОТ8", prof: "ВЕРШИНИН И. С.", dep: "Компьютерные системы" },
+      { time: "18:30", dates: ["01.09", "15.09", "29.09", "13.10", "27.10", "10.11", "24.11", "08.12"], name: "Интеллектуальные системы и технологии", type: "л.р.", room: "ДОТ / ДОТ17", prof: "СЫТНИК А. С.", dep: "АСОИУ" },
+      { time: "18:30", dates: ["08.09", "22.09", "06.10", "20.10", "03.11", "17.11", "01.12", "15.12"], name: "Модели информационных процессов и систем", type: "лек", room: "ДОТ / ДОТ8", prof: "САФИНА Р. М.", dep: "АСОИУ" },
+      { time: "20:10", dates: ["01.09", "15.09", "29.09", "13.10", "27.10", "10.11", "24.11", "08.12"], name: "Интеллектуальные системы и технологии", type: "л.р.", room: "ДОТ / ДОТ17", prof: "СЫТНИК А. С.", dep: "АСОИУ" },
+
+      // Среда
+      { time: "18:30", dates: ["09.09", "23.09", "07.10", "21.10"], name: "Интеллектуальные системы и технологии", type: "лек", room: "ДОТ / ДОТ3", prof: "СЫТНИК А. С.", dep: "АСОИУ" },
+      { time: "20:10", dates: ["09.09", "23.09", "07.10", "21.10", "18.11", "02.12", "16.12"], name: "Иностранный язык профессиональной направленности", type: "пр", room: "ДОТ / ДОТ3", prof: "ХАСНУТДИНОВА С. В.", dep: "Иностранные языки" },
+
+      // Четверг
+      { time: "16:50", dates: ["10.09", "24.09", "08.10", "22.10", "05.11", "19.11", "03.12", "17.12"], name: "Параллельные вычислительные системы", type: "лек", room: "ДОТ / ДОТ2", prof: "ГИБАДУЛЛИН Р. Ф.", dep: "Компьютерные системы" },
+      { time: "16:50", dates: ["03.09", "17.09", "01.10", "15.10", "29.10", "12.11", "26.11", "10.12"], name: "Введение в авиационные системы", type: "лек", room: "ДОТ / ДОТ2", prof: "АБДУЛЛИН И. Н.", dep: "Конструкция ЛА" },
+      { time: "18:30", dates: ["10.09", "08.10", "05.11", "03.12"], name: "Параллельные вычислительные системы", type: "л.р.", room: "ДОТ / ДОТ2", prof: "ГИБАДУЛЛИН Р. Ф.", dep: "Компьютерные системы" },
+      { time: "18:30", dates: ["03.09", "17.09", "01.10", "15.10", "29.10", "12.11", "26.11", "10.12"], name: "Модели информационных процессов и систем", type: "л.р.", room: "ДОТ / ДОТ2", prof: "САФИНА Р. М.", dep: "АСОИУ" },
+      { time: "20:10", dates: ["10.09", "08.10", "05.11", "03.12"], name: "Параллельные вычислительные системы", type: "л.р.", room: "ДОТ / ДОТ2", prof: "ГИБАДУЛЛИН Р. Ф.", dep: "Компьютерные системы" },
+      { time: "20:10", dates: ["03.09", "17.09", "01.10", "15.10", "29.10", "12.11", "26.11", "10.12"], name: "Модели информационных процессов и систем", type: "л.р.", room: "ДОТ / ДОТ2", prof: "САФИНА Р. М.", dep: "АСОИУ" },
+
+      // Пятница
+      { time: "16:50", dates: ["04.09", "18.09", "02.10", "16.10", "30.10", "13.11", "27.11", "11.12", "25.12"], name: "Иностранный язык профессиональной направленности", type: "пр", room: "ДОТ / ДОТ6", prof: "ХАСНУТДИНОВА С. В.", dep: "Иностранные языки" },
+      { time: "16:50", dates: ["11.09", "25.09", "09.10", "23.10", "06.11", "20.11", "04.12", "18.12"], name: "Инженерия информационных систем", type: "лек", room: "7 / 341", prof: "ОСИПОВ С. Н.", dep: "АСОИУ" },
+      { time: "18:30", dates: ["18.09", "16.10", "13.11", "11.12"], name: "Архитектура встраиваемых систем", type: "л.р.", room: "ДОТ / ДОТ6", prof: "ВЕРШИНИН И. С.", dep: "Компьютерные системы" },
+      { time: "18:30", dates: ["11.09", "25.09", "09.10", "23.10", "06.11", "20.11", "04.12", "18.12"], name: "Инженерия информационных систем", type: "л.р.", room: "7 / 341", prof: "ОСИПОВ С. Н.", dep: "АСОИУ" },
+      { time: "20:10", dates: ["18.09", "16.10", "13.11", "11.12"], name: "Архитектура встраиваемых систем", type: "л.р.", room: "ДОТ / ДОТ6", prof: "ВЕРШИНИН И. С.", dep: "Компьютерные системы" },
+      { time: "20:10", dates: ["11.09", "25.09", "09.10", "23.10", "06.11", "20.11", "04.12", "18.12"], name: "Инженерия информационных систем", type: "л.р.", room: "7 / 341", prof: "ОСИПОВ С. Н.", dep: "АСОИУ" }
+    ];
+
+    let currentDate = new Date();
+
+    // Форматирование Date -> DD.MM
+    function formatDDMM(date) {
+      let d = String(date.getDate()).padStart(2, '0');
+      let m = String(date.getMonth() + 1).padStart(2, '0');
+      return `${d}.${m}`;
+    }
+
+    // Минуты с начала суток
+    function toMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function render() {
+      const ddmm = formatDDMM(currentDate);
+      const isToday = new Date().toDateString() === currentDate.toDateString();
+
+      // Шапка даты
+      const days = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+      const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+      
+      document.getElementById('dateTitle').innerText = `${days[currentDate.getDay()]}, ${currentDate.getDate()} ${months[currentDate.getMonth()]}`;
+      document.getElementById('dateSub').innerText = isToday ? "Сегодня (нажмите для выбора)" : "Нажмите, чтобы сменить дату";
+
+      // Фильтрация расписания на день
+      const lessons = rawData
+        .filter(item => item.dates.includes(ddmm))
+        .sort((a, b) => toMinutes(a.time) - toMinutes(b.time));
+
+      const container = document.getElementById('scheduleList');
+      container.innerHTML = "";
+
+      if (lessons.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">☕</div>
+            <h3>Пар нет!</h3>
+            <p style="margin-top:6px; font-size:0.9rem;">В этот день занятий не запланировано</p>
+          </div>
+        `;
+        return;
+      }
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      lessons.forEach(lesson => {
+        const startMin = toMinutes(lesson.time);
+        const endMin = startMin + 90; // Стандартная пара 1:30
+
+        let statusClass = "";
+        if (isToday) {
+          if (currentMinutes >= startMin && currentMinutes <= endMin) {
+            statusClass = "now";
+          } else if (currentMinutes > endMin) {
+            statusClass = "past";
+          }
+        }
+
+        const card = document.createElement('div');
+        card.className = `card ${statusClass}`;
+        
+        let typeClass = "type-" + lesson.type.replace('.', '-');
+
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="time-slot">${lesson.time} - ${Math.floor(endMin/60)}:${String(endMin%60).padStart(2, '0')}</div>
+            <span class="type-badge ${typeClass}">${lesson.type}</span>
+          </div>
+          <div class="subject">${lesson.name}</div>
+          <div class="info-row">
+            <span>📍</span>
+            <span class="place-badge">${lesson.room}</span>
+          </div>
+          <div class="info-row">
+            <span>👤</span>
+            <span>${lesson.prof}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Обновление таймера и текущего статуса
+    function updateLiveStatus() {
+      const now = new Date();
+      document.getElementById('liveTime').innerText = now.toTimeString().split(' ')[0];
+
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const ddmm = formatDDMM(now);
+
+      const todayLessons = rawData
+        .filter(item => item.dates.includes(ddmm))
+        .sort((a, b) => toMinutes(a.time) - toMinutes(b.time));
+
+      const statusEl = document.getElementById('liveStatus');
+
+      if (todayLessons.length === 0) {
+        statusEl.innerText = "Сегодня выходной от пар";
+        statusEl.className = "status-badge";
+        return;
+      }
+
+      let activeFound = false;
+      for (let lesson of todayLessons) {
+        const start = toMinutes(lesson.time);
+        const end = start + 90;
+
+        if (currentMinutes >= start && currentMinutes <= end) {
+          statusEl.innerText = `Сейчас идет: ${lesson.name} (${lesson.room})`;
+          statusEl.className = "status-badge active";
+          activeFound = true;
+          break;
+        } else if (currentMinutes < start) {
+          const diff = start - currentMinutes;
+          const h = Math.floor(diff / 60);
+          const m = diff % 60;
+          let leftStr = h > 0 ? `${h} ч. ${m} мин.` : `${m} мин.`;
+          statusEl.innerText = `След. пара через ${leftStr} (${lesson.time})`;
+          statusEl.className = "status-badge";
+          activeFound = true;
+          break;
+        }
+      }
+
+      if (!activeFound) {
+        statusEl.innerText = "Все пары на сегодня закончились 🎉";
+        statusEl.className = "status-badge";
+      }
+    }
+
+    function changeDate(delta) {
+      currentDate.setDate(currentDate.getDate() + delta);
+      render();
+    }
+
+    function setToday() {
+      currentDate = new Date();
+      render();
+    }
+
+    function openPicker() {
+      const picker = document.getElementById('dateInput');
+      if (picker.showPicker) {
+        picker.showPicker();
+      } else {
+        picker.click();
+      }
+    }
+
+    function onDateChosen(val) {
+      if (!val) return;
+      currentDate = new Date(val);
+      render();
+    }
+
+    // Инициализация
+    render();
+    updateLiveStatus();
+    setInterval(updateLiveStatus, 1000);
+    // Периодический перерендер карточек (раз в минуту), чтобы менять статус "now/past"
+    setInterval(render, 60000);
+  </script>
+</body>
+</html>
